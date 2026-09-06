@@ -1,9 +1,9 @@
 
 import base64
-from collections.abc import Generator
 from contextlib import contextmanager
 import copy
 from dataclasses import dataclass, field
+import os
 import pickle
 from typing import Any
 
@@ -14,21 +14,15 @@ import mouse
 
 
 @contextmanager
-def style_var(
-    var: imgui.StyleVar_,
-    value: float | tuple[float, float],
-) -> Generator[None, None, None]:
-    imgui.push_style_var(var, value)
+def style_var(var: imgui.StyleVar_, value: float | imgui.ImVec2Like):
+    imgui.push_style_var(var, value) # type: ignore
     try:
         yield
     finally:
         imgui.pop_style_var()
 
 @contextmanager
-def style_color(
-    col: imgui.Col_,
-    value: imgui.ImVec4Like,
-) -> Generator[None, None, None]:
+def style_color(col: imgui.Col_, value: imgui.ImVec4Like):
     imgui.push_style_color(col, value)
     try:
         yield
@@ -196,13 +190,9 @@ def mouse_callback(e):
 
 	binding_entered(MOUSE_NAMES[e.button])
 
-def start_listening():
-	keyboard.hook(keyboard_callback)
-	mouse.hook(mouse_callback)
-
 def trash_button() -> bool:
-	with style_color(imgui.Col_.button, INVIS):
-		with style_var(imgui.StyleVar_.frame_border_size, 0):
+	with style_var(imgui.StyleVar_.frame_border_size, 0):
+		with style_color(imgui.Col_.button, INVIS):
 			with style_color(imgui.Col_.text, RED):
 				return imgui.button(icons_fontawesome_4.ICON_FA_TRASH)
 
@@ -219,6 +209,7 @@ def gui():
 						if focus_textbox:
 							imgui.set_keyboard_focus_here()
 							focus_textbox = False
+						# Need to add undo/redo support for this
 						_, profile().name = imgui.input_text("##Name", profile().name)
 
 				imgui.same_line(0, 0)
@@ -272,7 +263,8 @@ def gui():
 									binds[i].src = ""
 									binds[i].dst = ""
 									rebinding = i
-									start_listening()
+									keyboard.hook(keyboard_callback)
+									mouse.hook(mouse_callback)
 								imgui.same_line(0, 4)
 								if trash_button():
 									push_state()
@@ -284,7 +276,8 @@ def gui():
 							push_state()
 							rebinding = len(binds)
 							binds.append(Bind())
-							start_listening()
+							keyboard.hook(keyboard_callback)
+							mouse.hook(mouse_callback)
 
 					imgui.end_child()
 
@@ -293,8 +286,7 @@ def gui():
 					if imgui.button(icons_fontawesome_4.ICON_FA_STOP if running else icons_fontawesome_4.ICON_FA_PLAY, (imgui.get_content_region_avail().x, 0)):
 						running = not running
 						if running:
-							binds = profile().binds
-							for bind in binds:
+							for bind in profile().binds:
 								remap_input(bind.src, bind.dst)
 						else:
 							keyboard.unhook_all()
@@ -317,14 +309,12 @@ def load_settings():
 		state_stack.append(State())
 
 def load_fonts():
-	hello_imgui.load_font_ttf_with_font_awesome_icons(
-		r"C:\Windows\Fonts\segoeui.ttf",
-		16,
-	)
+	hello_imgui.load_font_ttf_with_font_awesome_icons(os.path.join(os.environ["WINDIR"], "Fonts", "segoeui.ttf"), 16)
 
 def save_settings():
-	# Prevents saving incomplete binds. Would be better to not write these to state but then UI is annoying
-	profile().binds = [bind for bind in profile().binds if bind.dst]
+	# Prevents saving incomplete binds. Would be better to not write these to state, but then UI is annoying
+	if state().selected != -1:
+		profile().binds = [bind for bind in profile().binds if bind.dst]
 
 	hello_imgui.save_user_pref("state", base64.b64encode(pickle.dumps(state())).decode("ascii"))
 
@@ -333,8 +323,8 @@ if __name__ == "__main__":
 	params.app_window_params.window_title = "ReMap"
 	params.app_window_params.window_geometry.size = (176, 300)
 	params.callbacks.post_init = load_settings
+	params.callbacks.load_additional_fonts = load_fonts
 	params.callbacks.before_exit = save_settings
 	params.callbacks.show_gui = gui
-	params.callbacks.load_additional_fonts = load_fonts
 
 	immapp.run(params)
