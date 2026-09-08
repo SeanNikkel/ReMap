@@ -1,5 +1,5 @@
 # ReMap
-<img width="178" height="332" alt="remap" src="https://github.com/user-attachments/assets/5a159d2d-a3c5-4b06-8216-ed41dbffd910" />
+<img width="178" height="332" src="https://github.com/user-attachments/assets/94fe834d-2a2c-46df-8f42-ca975c7203a7" />
 
 Input rebinding tool written in Python
 
