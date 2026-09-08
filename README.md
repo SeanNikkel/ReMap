@@ -5,11 +5,13 @@ Input rebinding tool written in Python
 
 ## Features
  - Keyboard, mouse buttons, and mouse wheel rebinding
+ - Toggle and spam modes
  - Multiple profiles
  - Undo/Redo
  - Autosave
 
 ## Requirements
+ - Windows
  - Python 3, and these packages:
    - keyboard
    - mouse

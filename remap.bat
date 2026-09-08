@@ -1,2 +1,2 @@
 @echo off
-start "" pythonw "%~dp0remap.py"
+start "" pythonw -O "%~dp0remap.py"
